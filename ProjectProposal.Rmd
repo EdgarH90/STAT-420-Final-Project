@@ -1,0 +1,50 @@
+---
+title: "Baseball Salary Analysis - Project Proposal"
+author: "Edgar Hernandez, Ryan Sims, Jessica Tomas"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    theme: readable
+    toc: yes
+  pdf_document:
+    toc: yes
+urlcolor: cyan
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Description of Dataset
+
+This dataset contains pitching, hitting, and fielding statistics for Major League Baseball from 1871
+through 2021. It includes data from the two current leagues (American and National), the four other
+"major" leagues (American Association, Union Association, Players League, and Federal League),
+and the National Association of 1871-1875. 
+
+```{r warning=FALSE, include=FALSE}
+library(Lahman)
+# Joining relevant tables
+tables = list(Salaries, Fielding, Batting)
+salary_data = Reduce(function(x,y) merge(x,y, by= c("playerID", "yearID", "teamID","lgID")), tables)
+# Cleaning up redundant columns
+salary_data = subset(salary_data, 
+                     select = -c(stint.x, stint.y, G.x, G.y, SB.x, SB.y, CS.x, CS.y))
+```
+
+Details:
+
+- The relevant portion of the dataset that we will be using contains `r length(colnames(salary_data))` variables. Some of the more critical variables are `Salary`, `Team`, `Player`, `Wins`, `Losses`, `Position`, `Games Started`, `Runs`, `Hits`, and `Homeruns`.
+```{r indent = "    "}
+summary(salary_data)
+```
+
+
+
+## Dataset Background Information
+
+## Dataset Interest
+
+## Evidence of Data
+
+This dataset can be accessed directly in `R` through the `Lahman` library. However, we will also be providing the extracted `.csv` file for the data.
