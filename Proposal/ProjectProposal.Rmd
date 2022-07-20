@@ -29,7 +29,7 @@ tables = list(Salaries, Fielding, Batting)
 salary_data = Reduce(function(x,y) merge(x,y, by= c("playerID", "yearID", "teamID","lgID")), tables)
 # Cleaning up redundant columns
 salary_data = subset(salary_data, 
-                     select = -c(stint.x, stint.y, G.x, G.y, SB.x, SB.y, CS.x, CS.y))
+                     select = -c(stint.x, stint.y, G.x, G.y, SB.x, SB.y, CS.x, CS.y, PB, WP, ZR))
 ```
 
 Details:
@@ -43,7 +43,13 @@ summary(salary_data)
 
 ## Dataset Background Information
 
+The data is copyright 1996-2022 by Sean Lahman, licensed under a Creative Commons Attribute-ShareAlike 3.0 Unported License. Chris Dalzell and his team maintain the R package and library that we will leverage in this project. This dataset was originally created in July 1995 by Sean Lahman, who was at the timeSoftware Developer for Eastman Kodak, but later worked as a Digital Publishing Director for Team Sports Publishing, a sports columnist for the New York Sun, and now is the Data Projects Manager at the Society for American Baseball Research (SABR). SABR is infact the organization from which the term Sabermetrics (originally SABRmetrics) is derived, which is the empirical analysis of baseball, especially the statistics thereof.
+
+This dataset contains data going back as far as 1871. We will however only be looking back so far as 1985 and only up to 2016, because the salary data only covers that range, and we are interested in the salaries of players. We might consider also limiting the scope to include only players who are not pitchers or catchers, as the statistical metrics used to measure their performance are different than the metrics used for all of the other positions in baseball.
+
 ## Dataset Interest
+
+We will be examining what statistics related to a baseball player's performance have a significant effect on the salary of a player. This is particularly interesting as it is sort of the flip-side of the coin to the traditional Sabermetrics employed by the Oakland Atheletics in the 1990's to analyze player statistics to try to assemble a winning team. We will be instead be leveraging the dataset to instead work for the players, hopefully determining which statistic(s) a player should focus on improving in order to increase their compensation.
 
 ## Evidence of Data
 
