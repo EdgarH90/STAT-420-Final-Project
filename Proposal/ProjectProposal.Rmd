@@ -3,10 +3,10 @@ title: "Baseball Salary Analysis - Project Proposal"
 author: "Edgar Hernandez, Ryan Sims, Jessica Tomas"
 date: "`r Sys.Date()`"
 output:
+  pdf_document:
+    toc: yes
   html_document:
     theme: readable
-    toc: yes
-  pdf_document:
     toc: yes
 urlcolor: cyan
 ---
@@ -22,8 +22,11 @@ through 2021. It includes data from the two current leagues (American and Nation
 "major" leagues (American Association, Union Association, Players League, and Federal League),
 and the National Association of 1871-1875. 
 
-```{r warning=FALSE, include=FALSE}
+```{r warning=FALSE, include=TRUE}
 library(Lahman)
+```
+
+```{r warning=FALSE, include=FALSE}
 # Joining relevant tables
 tables = list(Salaries, Fielding, Batting)
 salary_data = Reduce(function(x,y) merge(x,y, by= c("playerID", "yearID", "teamID","lgID")), tables)

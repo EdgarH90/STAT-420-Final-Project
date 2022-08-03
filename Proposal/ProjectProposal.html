@@ -11,7 +11,7 @@
 
 <meta name="author" content="Edgar Hernandez, Ryan Sims, Jessica Tomas" />
 
-<meta name="date" content="2022-07-18" />
+<meta name="date" content="2022-07-26" />
 
 <title>Baseball Salary Analysis - Project Proposal</title>
 
@@ -378,7 +378,7 @@ pre code {
 <h1 class="title toc-ignore">Baseball Salary Analysis - Project
 Proposal</h1>
 <h4 class="author">Edgar Hernandez, Ryan Sims, Jessica Tomas</h4>
-<h4 class="date">2022-07-18</h4>
+<h4 class="date">2022-07-26</h4>
 
 </div>
 
@@ -399,10 +399,11 @@ Major League Baseball from 1871 through 2021. It includes data from the
 two current leagues (American and National), the four other “major”
 leagues (American Association, Union Association, Players League, and
 Federal League), and the National Association of 1871-1875.</p>
+<pre class="r"><code>library(Lahman)</code></pre>
 <p>Details:</p>
 <ul>
 <li><p>The relevant portion of the dataset that we will be using
-contains 29 variables. Some of the more critical variables are
+contains 26 variables. Some of the more critical variables are
 <code>Salary</code>, <code>Team</code>, <code>Player</code>,
 <code>Wins</code>, <code>Losses</code>, <code>Position</code>,
 <code>Games Started</code>, <code>Runs</code>, <code>Hits</code>, and
@@ -432,53 +433,71 @@ contains 29 variables. Some of the more critical variables are
 ##  3rd Qu.: 107.0   3rd Qu.: 27.00   3rd Qu.: 3.000   3rd Qu.:  4.000  
 ##  Max.   :1597.0   Max.   :570.00   Max.   :42.000   Max.   :176.000  
 ##                                                                      
-##        PB              WP              ZR              AB       
-##  Min.   : 0.00   Min.   : NA     Min.   : NA     Min.   :  0.0  
-##  1st Qu.: 1.00   1st Qu.: NA     1st Qu.: NA     1st Qu.:  5.0  
-##  Median : 3.00   Median : NA     Median : NA     Median :130.0  
-##  Mean   : 4.05   Mean   :NaN     Mean   :NaN     Mean   :194.9  
-##  3rd Qu.: 6.00   3rd Qu.: NA     3rd Qu.: NA     3rd Qu.:347.0  
-##  Max.   :26.00   Max.   : NA     Max.   : NA     Max.   :716.0  
-##  NA&#39;s   :31677   NA&#39;s   :33937   NA&#39;s   :33937                  
-##        R                H               X2B              X3B        
-##  Min.   :  0.00   Min.   :  0.00   Min.   : 0.000   Min.   : 0.000  
-##  1st Qu.:  0.00   1st Qu.:  1.00   1st Qu.: 0.000   1st Qu.: 0.000  
-##  Median : 14.00   Median : 30.00   Median : 5.000   Median : 0.000  
-##  Mean   : 25.93   Mean   : 51.17   Mean   : 9.882   Mean   : 1.092  
-##  3rd Qu.: 44.00   3rd Qu.: 91.00   3rd Qu.:17.000   3rd Qu.: 2.000  
-##  Max.   :152.00   Max.   :262.00   Max.   :59.000   Max.   :23.000  
+##        AB              R                H               X2B        
+##  Min.   :  0.0   Min.   :  0.00   Min.   :  0.00   Min.   : 0.000  
+##  1st Qu.:  5.0   1st Qu.:  0.00   1st Qu.:  1.00   1st Qu.: 0.000  
+##  Median :130.0   Median : 14.00   Median : 30.00   Median : 5.000  
+##  Mean   :194.9   Mean   : 25.93   Mean   : 51.17   Mean   : 9.882  
+##  3rd Qu.:347.0   3rd Qu.: 44.00   3rd Qu.: 91.00   3rd Qu.:17.000  
+##  Max.   :716.0   Max.   :152.00   Max.   :262.00   Max.   :59.000  
+##                                                                    
+##       X3B               HR              RBI               BB        
+##  Min.   : 0.000   Min.   : 0.000   Min.   :  0.00   Min.   :  0.00  
+##  1st Qu.: 0.000   1st Qu.: 0.000   1st Qu.:  0.00   1st Qu.:  0.00  
+##  Median : 0.000   Median : 1.000   Median : 13.00   Median : 10.00  
+##  Mean   : 1.092   Mean   : 5.455   Mean   : 24.53   Mean   : 18.75  
+##  3rd Qu.: 2.000   3rd Qu.: 8.000   3rd Qu.: 40.00   3rd Qu.: 30.00  
+##  Max.   :23.000   Max.   :73.000   Max.   :165.00   Max.   :232.00  
 ##                                                                     
-##        HR              RBI               BB               SO        
-##  Min.   : 0.000   Min.   :  0.00   Min.   :  0.00   Min.   :  0.00  
-##  1st Qu.: 0.000   1st Qu.:  0.00   1st Qu.:  0.00   1st Qu.:  2.00  
-##  Median : 1.000   Median : 13.00   Median : 10.00   Median : 25.00  
-##  Mean   : 5.455   Mean   : 24.53   Mean   : 18.75   Mean   : 35.99  
-##  3rd Qu.: 8.000   3rd Qu.: 40.00   3rd Qu.: 30.00   3rd Qu.: 58.00  
-##  Max.   :73.000   Max.   :165.00   Max.   :232.00   Max.   :223.00  
-##                                                                     
-##       IBB               HBP               SH               SF       
-##  Min.   :  0.000   Min.   : 0.000   Min.   : 0.000   Min.   : 0.00  
-##  1st Qu.:  0.000   1st Qu.: 0.000   1st Qu.: 0.000   1st Qu.: 0.00  
-##  Median :  0.000   Median : 0.000   Median : 0.000   Median : 1.00  
-##  Mean   :  1.505   Mean   : 1.738   Mean   : 1.799   Mean   : 1.65  
-##  3rd Qu.:  2.000   3rd Qu.: 2.000   3rd Qu.: 3.000   3rd Qu.: 3.00  
-##  Max.   :120.000   Max.   :35.000   Max.   :39.000   Max.   :17.00  
-##                                                                     
-##       GIDP       
-##  Min.   : 0.000  
-##  1st Qu.: 0.000  
-##  Median : 2.000  
-##  Mean   : 4.437  
-##  3rd Qu.: 7.000  
-##  Max.   :35.000  
+##        SO              IBB               HBP               SH        
+##  Min.   :  0.00   Min.   :  0.000   Min.   : 0.000   Min.   : 0.000  
+##  1st Qu.:  2.00   1st Qu.:  0.000   1st Qu.: 0.000   1st Qu.: 0.000  
+##  Median : 25.00   Median :  0.000   Median : 0.000   Median : 0.000  
+##  Mean   : 35.99   Mean   :  1.505   Mean   : 1.738   Mean   : 1.799  
+##  3rd Qu.: 58.00   3rd Qu.:  2.000   3rd Qu.: 2.000   3rd Qu.: 3.000  
+##  Max.   :223.00   Max.   :120.000   Max.   :35.000   Max.   :39.000  
+##                                                                      
+##        SF             GIDP       
+##  Min.   : 0.00   Min.   : 0.000  
+##  1st Qu.: 0.00   1st Qu.: 0.000  
+##  Median : 1.00   Median : 2.000  
+##  Mean   : 1.65   Mean   : 4.437  
+##  3rd Qu.: 3.00   3rd Qu.: 7.000  
+##  Max.   :17.00   Max.   :35.000  
 ## </code></pre></li>
 </ul>
 </div>
 <div id="dataset-background-information" class="section level2">
 <h2>Dataset Background Information</h2>
+<p>The data is copyright 1996-2022 by Sean Lahman, licensed under a
+Creative Commons Attribute-ShareAlike 3.0 Unported License. Chris
+Dalzell and his team maintain the R package and library that we will
+leverage in this project. This dataset was originally created in July
+1995 by Sean Lahman, who was at the timeSoftware Developer for Eastman
+Kodak, but later worked as a Digital Publishing Director for Team Sports
+Publishing, a sports columnist for the New York Sun, and now is the Data
+Projects Manager at the Society for American Baseball Research (SABR).
+SABR is infact the organization from which the term Sabermetrics
+(originally SABRmetrics) is derived, which is the empirical analysis of
+baseball, especially the statistics thereof.</p>
+<p>This dataset contains data going back as far as 1871. We will however
+only be looking back so far as 1985 and only up to 2016, because the
+salary data only covers that range, and we are interested in the
+salaries of players. We might consider also limiting the scope to
+include only players who are not pitchers or catchers, as the
+statistical metrics used to measure their performance are different than
+the metrics used for all of the other positions in baseball.</p>
 </div>
 <div id="dataset-interest" class="section level2">
 <h2>Dataset Interest</h2>
+<p>We will be examining what statistics related to a baseball player’s
+performance have a significant effect on the salary of a player. This is
+particularly interesting as it is sort of the flip-side of the coin to
+the traditional Sabermetrics employed by the Oakland Atheletics in the
+1990’s to analyze player statistics to try to assemble a winning team.
+We will be instead be leveraging the dataset to instead work for the
+players, hopefully determining which statistic(s) a player should focus
+on improving in order to increase their compensation.</p>
 </div>
 <div id="evidence-of-data" class="section level2">
 <h2>Evidence of Data</h2>
