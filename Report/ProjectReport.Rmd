@@ -56,6 +56,7 @@ salary_data_cor = cor(salary_data_plot)
 library(ggcorrplot)
 my_plt = ggcorrplot(salary_data_cor, lab = TRUE, lab_size = 1, type = "lower")
 my_plt + theme(axis.text.x = element_text(size = 5), axis.text.y = element_text(size = 5))
+salary_data = subset(salary_data, select = -c(InnOuts))
 ```
 
 - As expected, certain batting predictors such as `Doubles (X2B)` and `Triples (X3B)` have a very high correlation. We will keep these correlations under consideration as we refine our model.Additionally, we will remove `InnOuts` from our model since it is perfectly correlated with `Games Started (GS)`.
@@ -70,14 +71,14 @@ salary_tst = salary_data[-salary_trn_idx, ]
 
 Next, we create a simple additive model with all of the predictors and a model with no predictors:
 ```{r}
-simple_add = lm(salary ~ .-InnOuts, data = salary_data)
-simple_fit = lm(salary ~ 1, data = salary_data)
+simple_add = lm(salary ~ ., data = salary_trn)
+simple_fit = lm(salary ~ 1, data = salary_trn)
 ```
 
 
 We then use AIC and BIC stepwise procedures to refine our model ([See appendix](#appendix)):
 ```{r}
-biggest = formula(lm(salary ~ .-InnOuts, data = salary_data))
+biggest = formula(lm(salary ~ ., data = salary_trn))
 back_aic = step(simple_add, direction = "backward", trace = 0)
 
 n = length(resid(simple_add))
@@ -104,14 +105,39 @@ kable(aic_results,
 all.equal(attr(back_aic$terms, "term.labels"),attr(back_bic$terms, "term.labels"))
 ```
 
+Next we want to look at a additive model that takes into account all 2-way interactions and then perform backwards stepwise AIC against that fitted model to arrive at a set of significant coefficients
+
+```{r}
+system.time({
+  slr3=lm(salary~(.)^2,salary_trn)
+})
+system.time({
+  slr3_AIC=step(slr3,direction='backward', trace=0)
+})
+summary(slr3)
+summary(slr3_AIC)
+```
+
+- Now we can compare the LOOCV RMSE and Adjusted R Squared for both models:
+
+```{r indent = "  "}
+rsquared3 = c(summary(slr3_AIC)$adj.r.squared, summary(slr3)$adj.r.squared)
+rmse3 = c(calc_loocv_rmse(slr3_AIC), calc_loocv_rmse(slr3))
+aic_results3 = data.frame(Model = c("Backward AIC", "Full Additive with 2-way Interactions"),
+                          AdjR = rsquared3, RMSE = rmse3)
+
+kable(aic_results3, 
+      col.names = c("Selection Procedure", "Adjusted R. Squared", "LOOCV RMSE"))
+```
+
 Because salary does not increase linearly in baseball and can range in orders of magnitude, we will create a model with a log transformation applied to our predictor. To do so, we will exclude the two data points where `salary` = 0.
 ```{r}
-log_fit = lm(log(salary) ~ .-InnOuts, salary > 0, data = salary_data)
+log_fit = lm(log(salary) ~ ., salary > 0, data = salary_data)
 ```
 
 Next, we will perform the stepwise procedures:
 ```{r}
-biggest = formula(lm(log(salary) ~ .-InnOuts, salary > 0, data = salary_data))
+biggest = formula(lm(log(salary) ~ ., salary > 0, data = salary_data))
 back_aic_log = step(log_fit, direction = "backward", trace = 0)
 
 n = length(resid(log_fit))
