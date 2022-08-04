@@ -30,8 +30,8 @@ We then join the Salaries, Fielding, and Batting tables:
 tables = list(Salaries, Fielding, Batting)
 salary_data = Reduce(function(x,y) merge(x,y, by= c("playerID", "yearID", "teamID","lgID")), tables)
 # Cleaning up redundant columns
-salary_data = subset(salary_data, subset = yearID > 2000, 
-                     select = -c(stint.x, stint.y, G.x, G.y, SB.x, SB.y, CS.x, CS.y, PB, WP, ZR))
+salary_data = subset(salary_data, 
+                     select = -c(stint.x, stint.y, G.x, G.y, SB.x, SB.y, CS.x, CS.y, PB, WP, ZR, playerID))
 
 # Converting character variables to factor
 salary_data[sapply(salary_data, is.character)] = lapply(salary_data[sapply(salary_data, is.character)], as.factor)
@@ -42,29 +42,39 @@ salary_data[sapply(salary_data, is.character)] = lapply(salary_data[sapply(salar
 First, we visualize pairwise correlations between `Salary` and other variables:
 
 - Calculating the correlations:
-```{r cache = TRUE, warning = FALSE, message= FALSE}
-salary_data = as.data.frame(lapply(salary_data, as.integer))
-salary_data_cor = cor(as.data.frame(salary_data))
+```{r warning = FALSE, message= FALSE}
+salary_data_plot = as.data.frame(lapply(salary_data, as.integer))
+salary_data_cor = cor(salary_data_plot)
 ```
 
 - Plotting the relationships:
-```{r cache = TRUE, warning = FALSE, message= FALSE}
+```{r warning = FALSE, message= FALSE}
 library(ggcorrplot)
 my_plt = ggcorrplot(salary_data_cor, lab = TRUE, lab_size = 1, show.diag = TRUE, type = "lower")
 my_plt + theme(axis.text.x = element_text(size = 5), axis.text.y = element_text(size = 5))
 ```
 
-```{r}
-salary_data = as.data.frame(salary_data)
-baseball_fit = lm(salary ~ ., data = salary_data)
-baseball_aic = step(baseball_fit, direction = "backward", trace = 0)
-```
+- As expected, certain batting predictors such as `Doubles (X2B)` and `Triples (X3B)` have a very high correlation. We will keep these correlations under consideration as we refine our model.
 
-Before generating models, we being by splitting the data into a test and train dataset. For this project we will split 60% of the data into a training set and 40% of the data into a testing set.
+Before generating models, we begin by splitting the data into a test and train dataset. For this project we will split 60% of the data into a training set and 40% of the data into a testing set.
 
 ```{r}
 salary_trn_idx = sample(nrow(salary_data), size = trunc(0.60 * nrow(salary_data)))
 salary_trn = salary_data[salary_trn_idx, ]
 salary_tst = salary_data[-salary_trn_idx, ]
 ```
+
+Next, we create a simple additive model with all of the predictors:
+```{r}
+simple_add = lm(salary ~ ., data = salary_data)
+```
+
+We then use a backwards AIC stepwise procedure to remove predictors:
+```{r}
+simple_back_aic = step(simple_add, direction = "backward", trace = 0)
+```
+
+
+
+
 
