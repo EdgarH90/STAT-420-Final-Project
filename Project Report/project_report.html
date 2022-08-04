@@ -11,13 +11,9 @@
 
 <meta name="author" content="Edgar Hernandez, Ryan Sims, Jessica Tomas" />
 
-<<<<<<< HEAD
 <meta name="date" content="2022-08-01" />
-=======
-<meta name="date" content="2022-07-26" />
->>>>>>> a4fd6835d85781cfb5db96b91a359c698459d3cb
 
-<title>Baseball Salary Analysis - Project Proposal</title>
+<title>Baseball Salary Analysis - Project Report</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -380,40 +376,43 @@ pre code {
 
 
 <h1 class="title toc-ignore">Baseball Salary Analysis - Project
-Proposal</h1>
+Report</h1>
 <h4 class="author">Edgar Hernandez, Ryan Sims, Jessica Tomas</h4>
-<<<<<<< HEAD
 <h4 class="date">2022-08-01</h4>
-=======
-<h4 class="date">2022-07-26</h4>
->>>>>>> a4fd6835d85781cfb5db96b91a359c698459d3cb
 
 </div>
 
 <div id="TOC">
 <ul>
-<li><a href="#description-of-dataset" id="toc-description-of-dataset">Description of Dataset</a></li>
-<li><a href="#dataset-background-information" id="toc-dataset-background-information">Dataset Background
-Information</a></li>
-<li><a href="#dataset-interest" id="toc-dataset-interest">Dataset
-Interest</a></li>
-<li><a href="#evidence-of-data" id="toc-evidence-of-data">Evidence of
-Data</a></li>
+<li><a href="#introduction" id="toc-introduction">Introduction</a></li>
 </ul>
 </div>
 
-<div id="description-of-dataset" class="section level2">
-<h2>Description of Dataset</h2>
-<p>This dataset contains pitching, hitting, and fielding statistics for
-Major League Baseball from 1871 through 2021. It includes data from the
-two current leagues (American and National), the four other “major”
-leagues (American Association, Union Association, Players League, and
-Federal League), and the National Association of 1871-1875.</p>
-<pre class="r"><code>library(Lahman)</code></pre>
-<p>Details:</p>
-<ul>
-<li><p>The relevant portion of the dataset that we will be using
-contains 26 variables. Some of the more critical variables are
+<div id="introduction" class="section level1">
+<h1>Introduction</h1>
+<p>We will be examining statistics related to a baseball’s player’s
+performance and determining which statistics have a significant effect
+on a player’s salary. Opposed to the traditional Sabermetrics employed
+by the Oakland Atheletics in the 1990’s to analyze player statistics to
+try to assemble a winning team we instead aim to leverage the dataset to
+work for the players. Our goal is to determine which statistic(s) a
+player should focus on improving in order to increase their
+compensation.</p>
+<p>We will be using data through the <code>Lahman</code> library. We
+will join the<code>Fielding</code>, <code>Batting</code>, and
+<code>Salaries</code> tables in the library to generate the dataset we
+will use in this project. This dataset contains pitching, hitting, and
+fielding statistics for Major League Baseball from 1871 through 2021. It
+includes data from the two current leagues (American and National), the
+four other “major” leagues (American Association, Union Association,
+Players League, and Federal League), and the National Association of
+1871-1875. This dataset was originally created in July 1995 by Sean
+Lahman and is maintained by Chris Dalzell and his team. This dataset
+contains data going back as far as 1871. We will however only be looking
+back so far as 1985 and only up to 2016, because the salary data only
+covers that range, and we are interested in the salaries of players.</p>
+<p>The relevant portion of the dataset that we will be using contains 26
+variables. Critical variables in the dataset include:
 <code>Salary</code>, <code>Team</code>, <code>Player</code>,
 <code>Wins</code>, <code>Losses</code>, <code>Position</code>,
 <code>Games Started</code>, <code>Runs</code>, <code>Hits</code>, and
@@ -474,46 +473,7 @@ contains 26 variables. Some of the more critical variables are
 ##  Mean   : 1.65   Mean   : 4.437  
 ##  3rd Qu.: 3.00   3rd Qu.: 7.000  
 ##  Max.   :17.00   Max.   :35.000  
-## </code></pre></li>
-</ul>
-</div>
-<div id="dataset-background-information" class="section level2">
-<h2>Dataset Background Information</h2>
-<p>The data is copyright 1996-2022 by Sean Lahman, licensed under a
-Creative Commons Attribute-ShareAlike 3.0 Unported License. Chris
-Dalzell and his team maintain the R package and library that we will
-leverage in this project. This dataset was originally created in July
-1995 by Sean Lahman, who was at the timeSoftware Developer for Eastman
-Kodak, but later worked as a Digital Publishing Director for Team Sports
-Publishing, a sports columnist for the New York Sun, and now is the Data
-Projects Manager at the Society for American Baseball Research (SABR).
-SABR is infact the organization from which the term Sabermetrics
-(originally SABRmetrics) is derived, which is the empirical analysis of
-baseball, especially the statistics thereof.</p>
-<p>This dataset contains data going back as far as 1871. We will however
-only be looking back so far as 1985 and only up to 2016, because the
-salary data only covers that range, and we are interested in the
-salaries of players. We might consider also limiting the scope to
-include only players who are not pitchers or catchers, as the
-statistical metrics used to measure their performance are different than
-the metrics used for all of the other positions in baseball.</p>
-</div>
-<div id="dataset-interest" class="section level2">
-<h2>Dataset Interest</h2>
-<p>We will be examining what statistics related to a baseball player’s
-performance have a significant effect on the salary of a player. This is
-particularly interesting as it is sort of the flip-side of the coin to
-the traditional Sabermetrics employed by the Oakland Atheletics in the
-1990’s to analyze player statistics to try to assemble a winning team.
-We will be instead be leveraging the dataset to instead work for the
-players, hopefully determining which statistic(s) a player should focus
-on improving in order to increase their compensation.</p>
-</div>
-<div id="evidence-of-data" class="section level2">
-<h2>Evidence of Data</h2>
-<p>This dataset can be accessed directly in <code>R</code> through the
-<code>Lahman</code> library. However, we will also be providing the
-extracted <code>.csv</code> file for the data.</p>
+## </code></pre>
 </div>
 
 

@@ -30,8 +30,9 @@ We then join the Salaries, Fielding, and Batting tables:
 tables = list(Salaries, Fielding, Batting)
 salary_data = Reduce(function(x,y) merge(x,y, by= c("playerID", "yearID", "teamID","lgID")), tables)
 # Cleaning up redundant columns
-salary_data = subset(salary_data, 
+salary_data = subset(salary_data, subset = yearID > 2000, 
                      select = -c(stint.x, stint.y, G.x, G.y, SB.x, SB.y, CS.x, CS.y, PB, WP, ZR))
+
 # Converting character variables to factor
 salary_data[sapply(salary_data, is.character)] = lapply(salary_data[sapply(salary_data, is.character)], as.factor)
 ```
@@ -57,7 +58,13 @@ my_plt + theme(axis.text.x = element_text(size = 5), axis.text.y = element_text(
 salary_data = as.data.frame(salary_data)
 baseball_fit = lm(salary ~ ., data = salary_data)
 baseball_aic = step(baseball_fit, direction = "backward", trace = 0)
+```
 
-range(salary_data$yearID)
+Before generating models, we being by splitting the data into a test and train dataset. For this project we will split 60% of the data into a training set and 40% of the data into a testing set.
+
+```{r}
+salary_trn_idx = sample(nrow(salary_data), size = trunc(0.60 * nrow(salary_data)))
+salary_trn = salary_data[salary_trn_idx, ]
+salary_tst = salary_data[-salary_trn_idx, ]
 ```
 
