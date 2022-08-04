@@ -1,0 +1,63 @@
+---
+title: "Baseball Salary Analysis"
+author: "Edgar Hernandez, Ryan Sims, Jessica Tomas"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    toc: yes
+  html_document:
+    theme: readable
+    toc: yes
+urlcolor: cyan
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+We will be examining what statistics related to a baseball player's performance have a significant effect on the salary of a player. This is particularly interesting as it is sort of the flip-side of the coin to the traditional Sabermetrics employed by the Oakland Athletics in the 1990's to analyze player statistics to try to assemble a winning team. We will be instead be leveraging the dataset to instead work for the players, hopefully determining which statistic(s) a player should focus on improving in order to increase their compensation.
+
+Before we begin our analysis, we must first load the data using the `Lahman` library:
+```{r warning=FALSE, include=TRUE}
+library(Lahman)
+```
+
+We then join the Salaries, Fielding, and Batting tables:
+```{r warning=FALSE, include=FALSE}
+# Joining relevant tables
+tables = list(Salaries, Fielding, Batting)
+salary_data = Reduce(function(x,y) merge(x,y, by= c("playerID", "yearID", "teamID","lgID")), tables)
+# Cleaning up redundant columns
+salary_data = subset(salary_data, 
+                     select = -c(stint.x, stint.y, G.x, G.y, SB.x, SB.y, CS.x, CS.y, PB, WP, ZR))
+# Converting character variables to factor
+salary_data[sapply(salary_data, is.character)] = lapply(salary_data[sapply(salary_data, is.character)], as.factor)
+```
+
+### Methods
+
+First, we visualize pairwise correlations between `Salary` and other variables:
+
+- Calculating the correlations:
+```{r cache = TRUE, warning = FALSE, message= FALSE}
+salary_data = as.data.frame(lapply(salary_data, as.integer))
+salary_data_cor = cor(as.data.frame(salary_data))
+```
+
+- Plotting the relationships:
+```{r cache = TRUE, warning = FALSE, message= FALSE}
+library(ggcorrplot)
+my_plt = ggcorrplot(salary_data_cor, lab = TRUE, lab_size = 1, show.diag = TRUE, type = "lower")
+my_plt + theme(axis.text.x = element_text(size = 5), axis.text.y = element_text(size = 5))
+```
+
+```{r}
+salary_data = as.data.frame(salary_data)
+baseball_fit = lm(salary ~ ., data = salary_data)
+baseball_aic = step(baseball_fit, direction = "backward", trace = 0)
+
+range(salary_data$yearID)
+```
+
