@@ -22,6 +22,7 @@ We will be examining what statistics related to a baseball player's performance 
 Before we begin our analysis, we must first load the data using the `Lahman` library:
 ```{r warning=FALSE, include=TRUE}
 library(Lahman)
+library(knitr)
 ```
 
 We then join the Salaries, Fielding, and Batting tables:
@@ -31,13 +32,13 @@ tables = list(Salaries, Fielding, Batting)
 salary_data = Reduce(function(x,y) merge(x,y, by= c("playerID", "yearID", "teamID","lgID")), tables)
 # Cleaning up redundant columns
 salary_data = subset(salary_data, 
-                     select = -c(stint.x, stint.y, G.x, G.y, SB.x, SB.y, CS.x, CS.y, PB, WP, ZR, playerID))
+                     select = -c(stint.x, stint.y, G.x, G.y, SB.x, SB.y, CS.x, CS.y, PB, WP, ZR, playerID, teamID))
 
 # Converting character variables to factor
 salary_data[sapply(salary_data, is.character)] = lapply(salary_data[sapply(salary_data, is.character)], as.factor)
 ```
 
-### Methods
+## Methods
 
 First, we visualize pairwise correlations between `Salary` and other variables:
 
@@ -50,11 +51,11 @@ salary_data_cor = cor(salary_data_plot)
 - Plotting the relationships:
 ```{r warning = FALSE, message= FALSE}
 library(ggcorrplot)
-my_plt = ggcorrplot(salary_data_cor, lab = TRUE, lab_size = 1, show.diag = TRUE, type = "lower")
+my_plt = ggcorrplot(salary_data_cor, lab = TRUE, lab_size = 1, type = "lower")
 my_plt + theme(axis.text.x = element_text(size = 5), axis.text.y = element_text(size = 5))
 ```
 
-- As expected, certain batting predictors such as `Doubles (X2B)` and `Triples (X3B)` have a very high correlation. We will keep these correlations under consideration as we refine our model.
+- As expected, certain batting predictors such as `Doubles (X2B)` and `Triples (X3B)` have a very high correlation. We will keep these correlations under consideration as we refine our model.Additionally, we will remove `InnOuts` from our model since it is perfectly correlated with `Games Started (GS)`.
 
 Before generating models, we begin by splitting the data into a test and train dataset. For this project we will split 60% of the data into a training set and 40% of the data into a testing set.
 
@@ -64,17 +65,50 @@ salary_trn = salary_data[salary_trn_idx, ]
 salary_tst = salary_data[-salary_trn_idx, ]
 ```
 
-Next, we create a simple additive model with all of the predictors:
+Next, we create a simple additive model with all of the predictors and a model with no predictors:
 ```{r}
-simple_add = lm(salary ~ ., data = salary_data)
-```
-
-We then use a backwards AIC stepwise procedure to remove predictors:
-```{r}
-simple_back_aic = step(simple_add, direction = "backward", trace = 0)
+simple_add = lm(salary ~ .-InnOuts, data = salary_data)
+simple_fit = lm(salary ~ 1, data = salary_data)
 ```
 
 
+We then use AIC and BIC stepwise procedures to refine our model ([See appendix](#appendix)):
+```{r}
+biggest = formula(lm(salary ~ .-InnOuts, data = salary_data))
+back_aic = step(simple_add, direction = "backward", trace = 0)
+
+n = length(resid(simple_add))
+back_bic = step(simple_add, direction = "backward", k = log(n), trace = 0)
+```
+
+- Now we can compare the LOOCV RMSE and Adjusted R Squared for both models:
+```{r indent = "  "}
+calc_loocv_rmse = function(model) {
+  sqrt(mean((resid(model) / (1 - hatvalues(model))) ^ 2))
+}
+
+rsquared = c(summary(back_aic)$adj.r.squared, summary(back_bic)$adj.r.squared)
+rmse = c(calc_loocv_rmse(back_aic), calc_loocv_rmse(back_bic))
+aic_results = data.frame(Model = c("Backward AIC", "Backward BIC"),
+                         AdjR = rsquared, RMSE = rmse)
+
+kable(aic_results, 
+      col.names = c("Selection Procedure", "Adjusted R. Squared", "LOOCV RMSE"))
+```
+
+- In addition to having identical Adjusted $R^2$ and LOOCV RMSE values, both models use the same coefficients:
+```{r}
+all.equal(attr(back_aic$terms, "term.labels"),attr(back_bic$terms, "term.labels"))
+```
 
 
+## Appendix {#appendix}
+
+Forward AIC additive model was also identical to backward:
+```{r}
+forw_aic = step(simple_fit, direction = "forward", scope = biggest, trace = 0)
+summary(forw_aic)$adj.r.squared
+calc_loocv_rmse(forw_aic)
+all.equal(sort(attr(back_aic$terms, "term.labels")), sort(attr(forw_aic$terms, "term.labels")))
+```
 
