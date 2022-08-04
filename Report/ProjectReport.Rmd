@@ -31,11 +31,14 @@ We then join the Salaries, Fielding, and Batting tables:
 tables = list(Salaries, Fielding, Batting)
 salary_data = Reduce(function(x,y) merge(x,y, by= c("playerID", "yearID", "teamID","lgID")), tables)
 # Cleaning up redundant columns
-salary_data = subset(salary_data, 
+salary_data = subset(salary_data, subset = yearID > 1900,
                      select = -c(stint.x, stint.y, G.x, G.y, SB.x, SB.y, CS.x, CS.y, PB, WP, ZR, playerID, teamID))
 
 # Converting character variables to factor
 salary_data[sapply(salary_data, is.character)] = lapply(salary_data[sapply(salary_data, is.character)], as.factor)
+
+# Cleaning up Nan & Inf values
+salary_data[is.na(salary_data) | salary_data=="Inf"] = NA
 ```
 
 ## Methods
@@ -101,6 +104,40 @@ kable(aic_results,
 all.equal(attr(back_aic$terms, "term.labels"),attr(back_bic$terms, "term.labels"))
 ```
 
+Because salary does not increase linearly in baseball and can range in orders of magnitude, we will create a model with a log transformation applied to our predictor. To do so, we will exclude the two data points where `salary` = 0.
+```{r}
+log_fit = lm(log(salary) ~ .-InnOuts, salary > 0, data = salary_data)
+```
+
+Next, we will perform the stepwise procedures:
+```{r}
+biggest = formula(lm(log(salary) ~ .-InnOuts, salary > 0, data = salary_data))
+back_aic_log = step(log_fit, direction = "backward", trace = 0)
+
+n = length(resid(log_fit))
+back_bic_log = step(log_fit, direction = "backward", k = log(n), trace = 0)
+```
+
+- Now we can compare the LOOCV RMSE and Adjusted R Squared for both models:
+```{r indent = "  "}
+calc_loocv_rmse_log = function(model) {
+  sqrt(mean((exp(resid(model)) / (1 - exp(hatvalues(model)))) ^ 2))
+}
+
+rsquared = c(summary(back_aic_log)$adj.r.squared, summary(back_bic_log)$adj.r.squared)
+rmse = c(calc_loocv_rmse_log(back_aic_log), calc_loocv_rmse_log(back_bic_log))
+aic_results = data.frame(Model = c("Log Backward AIC", "Log Backward BIC"),
+                         AdjR = rsquared, RMSE = rmse)
+
+kable(aic_results, 
+      col.names = c("Selection Procedure", "Adjusted R. Squared", "LOOCV RMSE"))
+```
+
+- Both models have a similar Adjusted $R^2$. Even though the AIC model has a lower LOOCV RMSE, the BIC model is significantly smaller. Going forward we will determine whether one model is better for predicting vs explaining.
+```{r indent = "    "}
+attr(back_aic_log$terms, "term.labels")
+attr(back_bic_log$terms, "term.labels")
+```
 
 ## Appendix {#appendix}
 
