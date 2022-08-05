@@ -109,39 +109,14 @@ kable(aic_results,
 ```
 
 - Although both models have similar Adjusted $R^2$ and LOOCV RMSE values, the BIC model uses fewer predictors:
-```{r}
+```{r indent = "    "}
 attr(back_aic$terms, "term.labels")
 attr(back_bic$terms, "term.labels")
 ```
 
-Next we want to look at a additive model that takes into account all 2-way interactions and then perform backwards stepwise AIC against that fitted model to arrive at a set of significant coefficients
-
-```{r eval=FALSE, include=FALSE}
-system.time({
-  slr3=lm(salary~(.)^2,salary_trn)
-})
-system.time({
-  slr3_AIC=step(slr3,direction='backward', trace=0)
-})
-summary(slr3)
-summary(slr3_AIC)
-```
-
-- Now we can compare the LOOCV RMSE and Adjusted R Squared for both models:
-
-```{r eval=FALSE, include=FALSE, indent="   "}
-rsquared3 = c(summary(slr3_AIC)$adj.r.squared, summary(slr3)$adj.r.squared)
-rmse3 = c(calc_loocv_rmse(slr3_AIC), calc_loocv_rmse(slr3))
-aic_results3 = data.frame(Model = c("Backward AIC", "Full Additive with 2-way Interactions"),
-                          AdjR = rsquared3, RMSE = rmse3)
-
-kable(aic_results3, 
-      col.names = c("Selection Procedure", "Adjusted R. Squared", "LOOCV RMSE"))
-```
-
-Because salary does not increase linearly in baseball and can range in orders of magnitude, we will create a model with a log transformation applied to our predictor. To do so, we will exclude the two data points where `salary` = 0.
+However, it is likely that salary does not increase linearly in baseball and can range in orders of magnitude. Therefore, we will create a new additive model with a log transformation applied to our predictor to see if we can obtain a higher Adjusted $R^2$ and a lower LOOCV RMSE.
 ```{r}
-log_fit = lm(log(salary) ~ ., salary > 0, data = salary_trn)
+log_fit = lm(log(salary) ~ ., data = salary_trn)
 ```
 
 Next, we will perform the stepwise procedures:
@@ -168,13 +143,26 @@ kable(aic_results,
       col.names = c("Selection Procedure", "Adjusted R. Squared", "LOOCV RMSE"))
 ```
 
-- Both models have a similar Adjusted $R^2$. Even though the AIC model has a lower LOOCV RMSE, the BIC model is significantly smaller. Going forward we will determine whether one model is better for predicting vs explaining.
+- Both models have a similar Adjusted $R^2$. Even though the AIC model has a lower LOOCV RMSE, the BIC model is significantly smaller..
 ```{r indent = "    "}
-attr(back_aic_log$terms, "term.labels")
-attr(back_bic_log$terms, "term.labels")
+(aic_terms = sort(attr(back_aic_log$terms, "term.labels")))
+(bic_terms = sort(attr(back_bic_log$terms, "term.labels")))
 ```
 
-We can then run some diagnostics to ensure that our model does not violate normality and equal variance assumptions.
+- Since the BIC model contains a subset of predictors from our AIC model, we can run an $F$-Test for comparison. 
+```{r indent = "    "}
+(null_terms = aic_terms[which(!aic_terms %in% bic_terms)])
+```
+
+- Using $H_0: \beta_{A} = \beta_{DP} = \beta_{HBP} = \beta_{SH} = \beta_{SF} = 0$, we will determine if one of the $\beta_j$ from our null is not $0$:
+
+```{r indent = "    "}
+anova(back_bic_log, back_aic_log)
+```
+
+- Since we have an extremely small p-value, we reject the null at any reasonable $\alpha$ and say that at least one of the $\beta_j$ from our null is not $0$.
+
+We can then run some diagnostics to ensure that our selected model does not violate normality and homoscedasticity assumptions.
 ```{r}
 diagnostics = function(model, pcol = 'grey', lcol = 'dodgerblue',
                        alpha = .05, plotit = TRUE, testit = TRUE){
@@ -198,70 +186,97 @@ diagnostics = function(model, pcol = 'grey', lcol = 'dodgerblue',
 
 - Based on the plots below below, we can observe that our model currently violates both normality and equal variance assumptions:
 ```{r indent = "    "}
-diagnostics(back_bic_log, testit = FALSE)
+diagnostics(back_aic_log, testit = FALSE)
 ```
 
 - We can attempt to stabilize the variance by applying log transformations to some of the predictors: 
 ```{r indent = "    "}
+#selected_fit = lm(log(salary) ~ yearID + POS + log(GS) + log(PO) + log(E) + log(AB) +
+                    #log(H) + log(X2B) + log(X3B) + log(HR) + log(RBI) + log(BB) +
+                    #log(SO) + log(IBB) + log(GIDP), data = salary_trn)
 selected_fit = lm(log(salary) ~ yearID + POS + log(GS) + log(PO) + log(E) + log(AB) +
                     log(H) + log(X2B) + log(X3B) + log(HR) + log(RBI) + log(BB) +
-                    log(SO) + log(IBB) + log(GIDP), salary > 0, data = salary_trn)
-
+                    log(SO) + log(IBB) + log(GIDP) + log(A) + log(DP) + log(HBP) + log(SH) + log(SF), data = salary_trn)
 ```
 
-- After running the diagnostics again, we can see that the variance looks better, but we still have quite a few issues with normality:
+- After running the diagnostics again, we can see that the variance looks better, but we still have quite a few issues with unusual observations:
 ```{r indent = "    "}
 diagnostics(selected_fit, testit = FALSE)
 ```
 
 - We can further refine our model by removing influential outliers. We will use the $D_i > \frac{4}{n}$ Cook's distance heuristic to identify them:
-```{r}
+```{r indent = "    "}
 cd_selected = cooks.distance(selected_fit)
 large_cd  = cd_selected > 4 / length(cd_selected)
 
 selected_fit_fix = lm(log(salary) ~ yearID + POS + log(GS) + log(PO) + log(E) + log(AB) +
                     log(H) + log(X2B) + log(X3B) + log(HR) + log(RBI) + log(BB) +
                     log(SO) + log(IBB) + log(GIDP), 
-                  subset = -which(large_cd | salary < 1), data = salary_trn)
+                  subset = -which(large_cd), data = salary_trn)
 diagnostics(selected_fit_fix, testit = FALSE)
 ```
 
-We can also apply log transformations to the full additive model to variables regarding only batting statistics. We will also remove influential outliers to improve our model.
+While the model above is looking much better, we will shift our focus on transforming only Fielding and Batting variables in isolation to see if we can improve our Adjusted $R^2$ amd LOOCV RMSE.
+
+We first apply log transformations to the full additive model to variables regarding only batting statistics. We will also remove influential outliers to improve our model.
 
 ```{r}
-log_fit_batting_selected = lm(log(salary) ~ log(AB) + log(R) + log(H) + log(X2B) + log(X3B) + log(HR) + log(RBI) + log(BB) + log(SO) + log(IBB) + log(HBP) + log(SH) + log(SF) + log(GIDP) + . - AB - R - H - X2B - X3B - RBI - BB - SO - IBB - HBP - SH - SF, subset = -which(large_cd | salary < 1), data = salary_trn)
+log_fit_batting_selected = lm(log(salary) ~ log(AB) + log(R) + log(H) + log(X2B) + log(X3B) + log(HR) + log(RBI) + log(BB) + log(SO) + log(IBB) + log(HBP) + log(SH) + log(SF) + log(GIDP) + . - AB - R - H - X2B - X3B - RBI - BB - SO - IBB - HBP - SH - SF, subset = -which(large_cd), data = salary_trn)
 
 bptest(log_fit_batting_selected)
 diagnostics(log_fit_batting_selected, testit = FALSE)
 ```
+
 When we perform the BP test we get a low p-value showing constant variance assumption is violated which matches our findings with the fitted versus residuals plot. When we look at the Q-Q plot it remains similar to the above model where there are still discrepancies.
 
 Likewise, we can apply log transformations to variables regarding fielding statistics to the full additive model
 
 ```{r}
-log_fit_fielding_selected = lm(log(salary) ~ log(GS) + log(PO) + log(A) + log(E) + log(DP) + . - GS - PO - A - E - DP, subset = -which(large_cd | salary < 1), data = salary_trn)
+log_fit_fielding_selected = lm(log(salary) ~ log(GS) + log(PO) + log(A) + log(E) + log(DP) + . - GS - PO - A - E - DP, subset = -which(large_cd), data = salary_trn)
 
 bptest(log_fit_fielding_selected)
 diagnostics(log_fit_fielding_selected, testit = FALSE)
 ```
 
-We can see adjusting the predictors with log transformations did not make much difference to the violations.
+We can see adjusting the predictors with log transformations did not make much difference to the assumption violations.
 
-We can still look at the adjusted $R^2$ and LOOCV RMSE between the base log additive model and the two models above to see how they compare.
+Now, we will compare the adjusted $R^2$ and LOOCV RMSE between our previously chosen AIC model and the two models above.
 
 ```{r}
-log_rmse = c(calc_loocv_rmse_log(log_fit), calc_loocv_rmse_log(log_fit_batting_selected), calc_loocv_rmse_log(log_fit_fielding_selected))
+log_rmse = c(calc_loocv_rmse_log(selected_fit_fix), calc_loocv_rmse_log(log_fit_batting_selected), calc_loocv_rmse_log(log_fit_fielding_selected))
 
 log_rsquared = c(summary(log_fit)$adj.r.squared, summary(log_fit_batting_selected)$adj.r.squared, summary(log_fit_fielding_selected)$adj.r.squared)
 
-log_results = data.frame(Model = c("Base Log Model", "Batting Selected Log Model", "Fielding Selected Log Model"), AdjR = log_rsquared, RMSE = log_rmse)
+log_results = data.frame(Model = c("Backward AIC Log Model", "Batting Selected Log Model", "Fielding Selected Log Model"), AdjR = log_rsquared, RMSE = log_rmse)
 
 kable(log_results, 
       col.names = c("Model", "Adjusted R. Squared", "LOOCV RMSE"))
 
 ```
 
-While the base log model has a smallar $R^2$, both selected log models have a similar adjusted $R^2$ that is slightly larger. When looking at the LOOCV RMSE, the fielding selected model has a much lower LOOCV RMSE than the other two.
+While the base log model has a smaller $R^2$, both selected log models have a similar adjusted $R^2$ that is slightly larger. When looking at the LOOCV RMSE, the fielding selected model has a much lower LOOCV RMSE than the batting model.
+
+- Now we can use our test data to compare the models:
+```{r}
+predict_aic = exp(predict(selected_fit_fix, newdata = salary_tst))
+predict_batting = exp(predict(log_fit_batting_selected, newdata = salary_tst))
+predict_fielding = exp(predict(log_fit_fielding_selected, newdata = salary_tst))
+n = length(predict_aic)
+
+(avg_pct_error_aic = (sum(abs(predict_aic - salary_tst$salary) / predict_aic) / n) * 100)
+(avg_pct_error_bat = (sum(abs(predict_batting - salary_tst$salary) / predict_batting) / n) * 100)
+(avg_pct_error_field = (sum(abs(predict_fielding - salary_tst$salary) / predict_fielding) / n) * 100)
+
+```
+
+
+## Results
+
+```{r}
+plot(predict_aic, salary_tst$salary, col = "grey", pch = 20,
+xlab = "Predicted Salary (in $)", ylab = "Actual Salary (in $)", main = "Actual vs Predicted Salary")
+abline(a = 0, b = 1, col = "darkorange", lwd = 1)
+```
 
 ## Appendix {#appendix}
 
@@ -273,3 +288,28 @@ calc_loocv_rmse(forw_aic)
 all.equal(sort(attr(back_aic$terms, "term.labels")), sort(attr(forw_aic$terms, "term.labels")))
 ```
 
+Additionally, we took a look at an additive model that takes into account all 2-way interactions and then perform backwards stepwise AIC against that fitted model to arrive at a set of significant coefficients
+
+```{r eval=FALSE}
+system.time({
+  slr3=lm(salary~(.)^2,salary_trn)
+})
+system.time({
+  slr3_AIC=step(slr3,direction='backward', trace=0)
+})
+summary(slr3)
+summary(slr3_AIC)
+```
+
+
+
+
+```{r eval=FALSE, indent="   "}
+rsquared3 = c(summary(slr3_AIC)$adj.r.squared, summary(slr3)$adj.r.squared)
+rmse3 = c(calc_loocv_rmse(slr3_AIC), calc_loocv_rmse(slr3))
+aic_results3 = data.frame(Model = c("Backward AIC", "Full Additive with 2-way Interactions"),
+                          AdjR = rsquared3, RMSE = rmse3)
+
+kable(aic_results3, 
+      col.names = c("Selection Procedure", "Adjusted R. Squared", "LOOCV RMSE"))
+```
