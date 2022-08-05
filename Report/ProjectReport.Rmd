@@ -226,6 +226,43 @@ selected_fit_fix = lm(log(salary) ~ yearID + POS + log(GS) + log(PO) + log(E) + 
 diagnostics(selected_fit_fix, testit = FALSE)
 ```
 
+We can also apply log transformations to the full additive model to variables regarding only batting statistics. We will also remove influential outliers to improve our model.
+
+```{r}
+log_fit_batting_selected = lm(log(salary) ~ log(AB) + log(R) + log(H) + log(X2B) + log(X3B) + log(HR) + log(RBI) + log(BB) + log(SO) + log(IBB) + log(HBP) + log(SH) + log(SF) + log(GIDP) + . - AB - R - H - X2B - X3B - RBI - BB - SO - IBB - HBP - SH - SF, subset = -which(large_cd | salary < 1), data = salary_trn)
+
+bptest(log_fit_batting_selected)
+diagnostics(log_fit_batting_selected, testit = FALSE)
+```
+When we perform the BP test we get a low p-value showing constant variance assumption is violated which matches our findings with the fitted versus residuals plot. When we look at the Q-Q plot it remains similar to the above model where there are still discrepancies.
+
+Likewise, we can apply log transformations to variables regarding fielding statistics to the full additive model
+
+```{r}
+log_fit_fielding_selected = lm(log(salary) ~ log(GS) + log(PO) + log(A) + log(E) + log(DP) + . - GS - PO - A - E - DP, subset = -which(large_cd | salary < 1), data = salary_trn)
+
+bptest(log_fit_fielding_selected)
+diagnostics(log_fit_fielding_selected, testit = FALSE)
+```
+
+We can see adjusting the predictors with log transformations did not make much difference to the violations.
+
+We can still look at the adjusted $R^2$ and LOOCV RMSE between the base log additive model and the two models above to see how they compare.
+
+```{r}
+log_rmse = c(calc_loocv_rmse_log(log_fit), calc_loocv_rmse_log(log_fit_batting_selected), calc_loocv_rmse_log(log_fit_fielding_selected))
+
+log_rsquared = c(summary(log_fit)$adj.r.squared, summary(log_fit_batting_selected)$adj.r.squared, summary(log_fit_fielding_selected)$adj.r.squared)
+
+log_results = data.frame(Model = c("Base Log Model", "Batting Selected Log Model", "Fielding Selected Log Model"), AdjR = log_rsquared, RMSE = log_rmse)
+
+kable(log_results, 
+      col.names = c("Model", "Adjusted R. Squared", "LOOCV RMSE"))
+
+```
+
+While the base log model has a smallar $R^2$, both selected log models have a similar adjusted $R^2$ that is slightly larger. When looking at the LOOCV RMSE, the fielding selected model has a much lower LOOCV RMSE than the other two.
+
 ## Appendix {#appendix}
 
 We also created a forward stepwise AIC model, which was the same size as the backward model:
