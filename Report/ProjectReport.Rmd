@@ -1,6 +1,6 @@
 ---
 title: "Baseball Salary Analysis"
-author: "Edgar Hernandez, Ryan Sims, Jessica Tomas"
+author: ""
 date: "`r Sys.Date()`"
 output:
   html_document:
@@ -19,11 +19,13 @@ knitr::opts_chunk$set(echo = TRUE)
 
 We will be examining what statistics related to a baseball player's performance have a significant effect on the salary of a player. This is particularly interesting as it is sort of the flip-side of the coin to the traditional Sabermetrics employed by the Oakland Athletics in the 1990's to analyze player statistics to try to assemble a winning team. We will be instead be leveraging the dataset to instead work for the players, hopefully determining which statistic(s) a player should focus on improving in order to increase their compensation.
 
-Before we begin our analysis, we must first load the data using the `Lahman` library:
+Before we begin our analysis, we must first load the data and other dependencies from their respective libraries:
 ```{r warning=FALSE, include=TRUE, message= FALSE}
 library(Lahman)
 library(knitr)
 library(lmtest)
+library(scales)
+library(ggplot2)
 ```
 
 We then join the Salaries, Fielding, and Batting tables:
@@ -218,22 +220,21 @@ diagnostics(selected_fit_fix, testit = FALSE)
 
 While the model above is looking much better, we will shift our focus on transforming only Fielding and Batting variables in isolation to see if we can improve our Adjusted $R^2$ amd LOOCV RMSE.
 
-We first apply log transformations to the full additive model to variables regarding only batting statistics. We will also remove influential outliers to improve our model.
+We first apply log transformations to the full additive model to variables regarding only batting statistics. Additionally, we will add the interactions between `Year` and `Position`. Finally, we will remove influential outliers to improve our model.
 
 ```{r}
-log_fit_batting_selected = lm(log(salary) ~ log(AB) + log(R) + log(H) + log(X2B) + log(X3B) + log(HR) + log(RBI) + log(BB) + log(SO) + log(IBB) + log(HBP) + log(SH) + log(SF) + log(GIDP) + . - AB - R - H - X2B - X3B - RBI - BB - SO - IBB - HBP - SH - SF, subset = -which(large_cd), data = salary_trn)
-
+log_fit_batting_selected = lm(log(salary) ~  + yearID * POS * (A + DP + E + GIDP + GS + lgID + log(AB) + log(BB) + log(GIDP) + log(H) + log(HBP) + log(HR) + log(IBB) + log(R) + log(RBI) + log(SF) + log(SH) + log(SO) + log(X2B) + log(X3B) + PO), subset = -which(large_cd), data = salary_trn)
 bptest(log_fit_batting_selected)
 diagnostics(log_fit_batting_selected, testit = FALSE)
 ```
 
 When we perform the BP test we get a low p-value showing constant variance assumption is violated which matches our findings with the fitted versus residuals plot. When we look at the Q-Q plot it remains similar to the above model where there are still discrepancies.
 
-Likewise, we can apply log transformations to variables regarding fielding statistics to the full additive model
+Likewise, we can apply log transformations to variables regarding fielding statistics to the full additive model and add the `Year` and `POS` interactions.
 
 ```{r}
-log_fit_fielding_selected = lm(log(salary) ~ log(GS) + log(PO) + log(A) + log(E) + log(DP) + . - GS - PO - A - E - DP, subset = -which(large_cd), data = salary_trn)
-
+#log_fit_fielding_selected = lm(log(salary) ~ log(GS) + log(PO) + log(A) + log(E) + log(DP) + . - GS - PO - A - E - DP, subset = -which(large_cd), data = salary_trn)
+log_fit_fielding_selected = lm(log(salary) ~ yearID * POS * (AB + BB + GIDP + H + HBP + HR + IBB + lgID + log(A) + log(DP) + log(E) + log(GS) + log(PO) + R + RBI + SF + SH + SO + X2B + X3B), subset = -which(large_cd), data = salary_trn)
 bptest(log_fit_fielding_selected)
 diagnostics(log_fit_fielding_selected, testit = FALSE)
 ```
@@ -254,10 +255,10 @@ kable(log_results,
 
 ```
 
-While the base log model has a smaller $R^2$, both selected log models have a similar adjusted $R^2$ that is slightly larger. When looking at the LOOCV RMSE, the fielding selected model has a much lower LOOCV RMSE than the batting model.
+While the base AIC log model has a smaller $R^2$, both selected log models have a similar adjusted $R^2$ that is slightly larger. When looking at the LOOCV RMSE, the fielding selected model has a much lower LOOCV RMSE than the batting model.
 
-- Now we can use our test data to compare the models:
-```{r}
+- Now we can use our test data to compare the average percent error between the models:
+```{r indent = "  "}
 predict_aic = exp(predict(selected_fit_fix, newdata = salary_tst))
 predict_batting = exp(predict(log_fit_batting_selected, newdata = salary_tst))
 predict_fielding = exp(predict(log_fit_fielding_selected, newdata = salary_tst))
@@ -269,16 +270,39 @@ n = length(predict_aic)
 
 ```
 
+- Calculating the test RMSE for our models:
+```{r}
+(aic_rmse = sqrt(mean((predict_aic - salary_tst$salary)^2)))
+(batting_rmse = sqrt(mean((predict_batting - salary_tst$salary)^2)))
+(fielding_rmse = sqrt(mean((predict_fielding - salary_tst$salary)^2)))
+```
+
 
 ## Results
 
-```{r}
-plot(predict_aic, salary_tst$salary, col = "grey", pch = 20,
-xlab = "Predicted Salary (in $)", ylab = "Actual Salary (in $)", main = "Actual vs Predicted Salary")
-abline(a = 0, b = 1, col = "darkorange", lwd = 1)
+- Plotting our predicted salaries vs the actual test set salaries:
+```{r indent = "  "}
+ggplot(data = data.frame(predict_batting, salary_tst$salary), mapping = aes(x = predict_batting, y = salary_tst$salary)) + 
+  labs(x = "Predicted Salary (in Millions of $)") + 
+  labs(y = "Actual Salary (in Millions of $)") + 
+  labs(title = "Actual vs Predicted Salary") + 
+  geom_point(color = "darkblue", size = 1) + 
+  scale_y_continuous(labels = label_number(suffix = " M", scale = 1e-6)) +
+  scale_x_continuous(labels = label_number(suffix = " M", scale = 1e-6)) +
+  geom_abline(slope = 1, intercept = 0, color = "red")
 ```
 
+## Discussion
+
+- Based on our results, it appears that player statistics cannot accurately predict player salaries. However, this was to be expected given the low Adjusted $R^2$ that we were able to achieve. Various external factors such as inflation, players' strike (lockout), and changes in collective bargaining agreements also play a role in determining salaries.
+
+- Even though all of our error rates are extremely high, we still managed to decrease them substantially by refining the models. 
+
+- Our models appear to be overfitting the data given the extremely large RMSEs for our test sets. For future analysis, we would need to simplify our selected model.
+
 ## Appendix {#appendix}
+
+Team Members: Edgar Hernandez, Ryan Sims, Jessica Tomas
 
 We also created a forward stepwise AIC model, which was the same size as the backward model:
 ```{r}
@@ -288,7 +312,7 @@ calc_loocv_rmse(forw_aic)
 all.equal(sort(attr(back_aic$terms, "term.labels")), sort(attr(forw_aic$terms, "term.labels")))
 ```
 
-Additionally, we took a look at an additive model that takes into account all 2-way interactions and then perform backwards stepwise AIC against that fitted model to arrive at a set of significant coefficients
+Additionally, we took a look at an additive model that takes into account all 2-way interactions and then perform backwards stepwise AIC against that fitted model to arrive at a set of significant coefficients. However, the model took multiple hours to compute and did not achieve desirable results given the extremely large number of variables.
 
 ```{r eval=FALSE}
 system.time({
@@ -301,9 +325,6 @@ summary(slr3)
 summary(slr3_AIC)
 ```
 
-
-
-
 ```{r eval=FALSE, indent="   "}
 rsquared3 = c(summary(slr3_AIC)$adj.r.squared, summary(slr3)$adj.r.squared)
 rmse3 = c(calc_loocv_rmse(slr3_AIC), calc_loocv_rmse(slr3))
@@ -313,3 +334,9 @@ aic_results3 = data.frame(Model = c("Backward AIC", "Full Additive with 2-way In
 kable(aic_results3, 
       col.names = c("Selection Procedure", "Adjusted R. Squared", "LOOCV RMSE"))
 ```
+
+We also analyzed log transformations of the predictors without any interactions first:
+```{r eval=FALSE}
+log_fit_batting_selected = lm(log(salary) ~ log(AB) + log(R) + log(H) + log(X2B) + log(X3B) + log(HR) + log(RBI) + log(BB) + log(SO) + log(IBB) + log(HBP) + log(SH) + log(SF) + log(GIDP) + . - AB - R - H - X2B - X3B - RBI - BB - SO - IBB - HBP - SH - SF, subset = -which(large_cd), data = salary_trn)
+```
+
