@@ -50,6 +50,11 @@ salary_data[ , ! colnames(salary_data) %in% c("yearID", "lgID", "POS") ] =
   salary_data[ , ! colnames(salary_data) %in% c("yearID", "lgID", "POS") ] + 1
 ```
 
+Creating CSV to include with assignment submission:
+```{r eval=FALSE}
+write.csv(salary_data, "salary_data.csv", row.names = FALSE)
+```
+
 ## Methods
 
 First, we visualize pairwise correlations between `Salary` and other variables:
@@ -335,6 +340,17 @@ kable(aic_results3,
       col.names = c("Selection Procedure", "Adjusted R. Squared", "LOOCV RMSE"))
 ```
 
+Below are the results we obtained after running the chunk above:
+```
+|Selection Procedure                   | Adjusted R. Squared| LOOCV RMSE|
+|:-------------------------------------|-------------------:|----------:|
+|Backward AIC                          |           0.3727780|    2600805|
+|Full Additive with 2-way Interactions |           0.3713568|    2624299|
+> length(slr3$coefficients)
+[1] 364
+> length(slr3_AIC$coefficients)
+[1] 197
+```
 We also analyzed log transformations of the predictors without any interactions first:
 ```{r eval=FALSE}
 log_fit_batting_selected = lm(log(salary) ~ log(AB) + log(R) + log(H) + log(X2B) + log(X3B) + log(HR) + log(RBI) + log(BB) + log(SO) + log(IBB) + log(HBP) + log(SH) + log(SF) + log(GIDP) + . - AB - R - H - X2B - X3B - RBI - BB - SO - IBB - HBP - SH - SF, subset = -which(large_cd), data = salary_trn)

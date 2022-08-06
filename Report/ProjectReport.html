@@ -412,6 +412,8 @@ library(ggplot2)</code></pre>
 to facilitate log transformations for the predictors:</p>
 <pre class="r"><code>salary_data[ , ! colnames(salary_data) %in% c(&quot;yearID&quot;, &quot;lgID&quot;, &quot;POS&quot;) ] = 
   salary_data[ , ! colnames(salary_data) %in% c(&quot;yearID&quot;, &quot;lgID&quot;, &quot;POS&quot;) ] + 1</code></pre>
+<p>Creating CSV to include with assignment submission:</p>
+<pre class="r"><code>write.csv(salary_data, &quot;salary_data.csv&quot;, row.names = FALSE)</code></pre>
 </div>
 <div id="methods" class="section level2">
 <h2>Methods</h2>
@@ -796,6 +798,15 @@ aic_results3 = data.frame(Model = c(&quot;Backward AIC&quot;, &quot;Full Additiv
 
 kable(aic_results3, 
       col.names = c(&quot;Selection Procedure&quot;, &quot;Adjusted R. Squared&quot;, &quot;LOOCV RMSE&quot;))</code></pre>
+<p>Below are the results we obtained after running the chunk above:</p>
+<pre><code>|Selection Procedure                   | Adjusted R. Squared| LOOCV RMSE|
+|:-------------------------------------|-------------------:|----------:|
+|Backward AIC                          |           0.3727780|    2600805|
+|Full Additive with 2-way Interactions |           0.3713568|    2624299|
+&gt; length(slr3$coefficients)
+[1] 364
+&gt; length(slr3_AIC$coefficients)
+[1] 197</code></pre>
 <p>We also analyzed log transformations of the predictors without any
 interactions first:</p>
 <pre class="r"><code>log_fit_batting_selected = lm(log(salary) ~ log(AB) + log(R) + log(H) + log(X2B) + log(X3B) + log(HR) + log(RBI) + log(BB) + log(SO) + log(IBB) + log(HBP) + log(SH) + log(SF) + log(GIDP) + . - AB - R - H - X2B - X3B - RBI - BB - SO - IBB - HBP - SH - SF, subset = -which(large_cd), data = salary_trn)</code></pre>
