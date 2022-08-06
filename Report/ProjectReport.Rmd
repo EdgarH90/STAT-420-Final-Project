@@ -96,21 +96,21 @@ back_bic = step(simple_add, direction = "backward", k = log(n), trace = 0)
 ```
 
 - Now we can compare the LOOCV RMSE and Adjusted R Squared for both models:
-```{r indent = "  "}
+
+```{r indent = "    "}
 calc_loocv_rmse = function(model) {
   sqrt(mean((resid(model) / (1 - hatvalues(model))) ^ 2))
 }
-
-rsquared = c(summary(back_aic)$adj.r.squared, summary(back_bic)$adj.r.squared)
-rmse = c(calc_loocv_rmse(back_aic), calc_loocv_rmse(back_bic))
-aic_results = data.frame(Model = c("Backward AIC", "Backward BIC"),
-                         AdjR = rsquared, RMSE = rmse)
-
-kable(aic_results, 
-      col.names = c("Selection Procedure", "Adjusted R. Squared", "LOOCV RMSE"))
 ```
 
-- Although both models have similar Adjusted $R^2$ and LOOCV RMSE values, the BIC model uses fewer predictors:
+```{r indent = "    "}
+(rsquared = c(summary(back_aic)$adj.r.squared, summary(back_bic)$adj.r.squared))
+
+(rmse = c(calc_loocv_rmse(back_aic), calc_loocv_rmse(back_bic)))
+```
+
+- Although both models have similar Adjusted $R^2$ and LOOCV RMSE values, the BIC model uses fewer predictors. The AIC model contains `r length(attr(back_aic$terms, "term.labels"))` predictors and the BIC model contains `r length(attr(back_bic$terms, "term.labels"))` predictors. The predictors are as follows:
+
 ```{r indent = "    "}
 attr(back_aic$terms, "term.labels")
 attr(back_bic$terms, "term.labels")
@@ -131,21 +131,20 @@ back_bic_log = step(log_fit, direction = "backward", k = log(n), trace = 0)
 ```
 
 - Now we can compare the LOOCV RMSE and Adjusted R Squared for both models:
-```{r indent = "  "}
+
+```{r indent = "    "}
 calc_loocv_rmse_log = function(model) {
   sqrt(mean((exp(resid(model)) / (1 - exp(hatvalues(model)))) ^ 2))
 }
-
-rsquared = c(summary(back_aic_log)$adj.r.squared, summary(back_bic_log)$adj.r.squared)
-rmse = c(calc_loocv_rmse_log(back_aic_log), calc_loocv_rmse_log(back_bic_log))
-aic_results = data.frame(Model = c("Log Backward AIC", "Log Backward BIC"),
-                         AdjR = rsquared, RMSE = rmse)
-
-kable(aic_results, 
-      col.names = c("Selection Procedure", "Adjusted R. Squared", "LOOCV RMSE"))
 ```
 
-- Both models have a similar Adjusted $R^2$. Even though the AIC model has a lower LOOCV RMSE, the BIC model is significantly smaller..
+```{r indent = "    "}
+(rsquared_log_selected = c(summary(back_aic_log)$adj.r.squared, summary(back_bic_log)$adj.r.squared))
+(rmse_log_selected = c(calc_loocv_rmse_log(back_aic_log), calc_loocv_rmse_log(back_bic_log)))
+```
+
+- Both models have a similar Adjusted $R^2$. Even though the AIC model has a lower LOOCV RMSE, the BIC model is significantly smaller. The AIC model contains `r length(attr(back_aic_log$terms, "term.labels"))` predictors and the BIC model contains `r length(attr(back_bic_log$terms, "term.labels"))` predictors. The predictors are as follows:
+
 ```{r indent = "    "}
 (aic_terms = sort(attr(back_aic_log$terms, "term.labels")))
 (bic_terms = sort(attr(back_bic_log$terms, "term.labels")))
@@ -244,48 +243,135 @@ We can see adjusting the predictors with log transformations did not make much d
 Now, we will compare the adjusted $R^2$ and LOOCV RMSE between our previously chosen AIC model and the two models above.
 
 ```{r}
-log_rmse = c(calc_loocv_rmse_log(selected_fit_fix), calc_loocv_rmse_log(log_fit_batting_selected), calc_loocv_rmse_log(log_fit_fielding_selected))
+(log_transform_rmse = c(calc_loocv_rmse_log(selected_fit_fix), calc_loocv_rmse_log(log_fit_batting_selected), calc_loocv_rmse_log(log_fit_fielding_selected)))
 
-log_rsquared = c(summary(log_fit)$adj.r.squared, summary(log_fit_batting_selected)$adj.r.squared, summary(log_fit_fielding_selected)$adj.r.squared)
-
-log_results = data.frame(Model = c("Backward AIC Log Model", "Batting Selected Log Model", "Fielding Selected Log Model"), AdjR = log_rsquared, RMSE = log_rmse)
-
-kable(log_results, 
-      col.names = c("Model", "Adjusted R. Squared", "LOOCV RMSE"))
+(log_transform_rsquared = c(summary(log_fit)$adj.r.squared, summary(log_fit_batting_selected)$adj.r.squared, summary(log_fit_fielding_selected)$adj.r.squared))
 
 ```
 
 While the base AIC log model has a smaller $R^2$, both selected log models have a similar adjusted $R^2$ that is slightly larger. When looking at the LOOCV RMSE, the fielding selected model has a much lower LOOCV RMSE than the batting model.
 
-- Now we can use our test data to compare the average percent error between the models:
+Now we can use our test data to compare the average percent error between all the models:
+
 ```{r indent = "  "}
+# Base Selected models
+predict_back_aic = predict(back_aic, newdata = salary_tst)
+predict_back_bic = predict(back_bic, newdata = salary_tst)
+
+# Log Selected Models
+predict_select_aic = exp(predict(back_aic_log, newdata = salary_tst))
+predict_select_bic = exp(predict(back_bic_log, newdata = salary_tst))
+
+# Transformed Models
 predict_aic = exp(predict(selected_fit_fix, newdata = salary_tst))
 predict_batting = exp(predict(log_fit_batting_selected, newdata = salary_tst))
 predict_fielding = exp(predict(log_fit_fielding_selected, newdata = salary_tst))
 n = length(predict_aic)
 
-(avg_pct_error_aic = (sum(abs(predict_aic - salary_tst$salary) / predict_aic) / n) * 100)
-(avg_pct_error_bat = (sum(abs(predict_batting - salary_tst$salary) / predict_batting) / n) * 100)
-(avg_pct_error_field = (sum(abs(predict_fielding - salary_tst$salary) / predict_fielding) / n) * 100)
+avg_pct_error_back_aic = (sum(abs(predict_back_aic - salary_tst$salary) / predict_back_aic) / n) * 100
+avg_pct_error_back_bic = (sum(abs(predict_back_bic - salary_tst$salary) / predict_back_bic) / n) * 100
+
+avg_pct_error_select_aic = (sum(abs(predict_select_aic - salary_tst$salary) / predict_select_aic) / n) * 100
+avg_pct_error_select_bic = (sum(abs(predict_select_bic - salary_tst$salary) / predict_select_bic) / n) * 100
+
+avg_pct_error_aic = (sum(abs(predict_aic - salary_tst$salary) / predict_aic) / n) * 100
+avg_pct_error_bat = (sum(abs(predict_batting - salary_tst$salary) / predict_batting) / n) * 100
+avg_pct_error_field = (sum(abs(predict_fielding - salary_tst$salary) / predict_fielding) / n) * 100
 
 ```
 
-- Calculating the test RMSE for our models:
+We can also calculate the test RMSE for our models:
+
 ```{r}
-(aic_rmse = sqrt(mean((predict_aic - salary_tst$salary)^2)))
-(batting_rmse = sqrt(mean((predict_batting - salary_tst$salary)^2)))
-(fielding_rmse = sqrt(mean((predict_fielding - salary_tst$salary)^2)))
+back_aic_rmse = sqrt(mean((predict_back_aic - salary_tst$salary)^2))
+back_bic_rmse = sqrt(mean((predict_back_bic - salary_tst$salary)^2))
+
+select_aic_rmse = sqrt(mean((predict_select_aic - salary_tst$salary)^2))
+select_bic_rmse = sqrt(mean((predict_select_bic - salary_tst$salary)^2))
+
+aic_rmse = sqrt(mean((predict_aic - salary_tst$salary)^2))
+batting_rmse = sqrt(mean((predict_batting - salary_tst$salary)^2))
+fielding_rmse = sqrt(mean((predict_fielding - salary_tst$salary)^2))
 ```
 
 
 ## Results
 
-- Plotting our predicted salaries vs the actual test set salaries:
+
+### Backwards AIC vs Backwards BIC
+
+```{r }
+aic_results = data.frame(Model = c("Backward AIC", "Backward BIC"),
+                         AdjR = rsquared, RMSE = rmse)
+
+kable(aic_results, 
+      col.names = c("Selection Procedure", "Adjusted R. Squared", "LOOCV RMSE"))
+```
+
+
+### Log Selected Step Models
+
+```{r}
+aic_results_log_selected = data.frame(Model = c("Log Backward AIC", "Log Backward BIC"),
+                         AdjR = rsquared_log_selected, RMSE = rmse_log_selected)
+
+kable(aic_results_log_selected, 
+      col.names = c("Selection Procedure", "Adjusted R. Squared", "LOOCV RMSE"))
+```
+
+
+### Transformed Models
+
+```{r}
+log_transform_results = data.frame(Model = c("Back AIC Selected Log Model", "Batting Selected Log Model", "Fielding Selected Log Model"), AdjR = log_transform_rsquared, RMSE = log_transform_rmse)
+
+kable(log_transform_results, 
+      col.names = c("Model", "Adjusted R. Squared", "LOOCV RMSE"))
+```
+
+
+### Test Results
+
+For each set, we selected the model with the best average percent error and plotted our predicted salaries vs the actual test set salaries.
+
+```{r}
+avg_percent_error = c(avg_pct_error_back_aic, avg_pct_error_back_bic, avg_pct_error_select_aic, avg_pct_error_select_bic, avg_pct_error_aic, avg_pct_error_bat, avg_pct_error_field)
+
+test_rmse = c(back_aic_rmse, back_bic_rmse, select_aic_rmse, select_bic_rmse, aic_rmse, batting_rmse, fielding_rmse)
+
+test_set_results = data.frame(Model = c("Backward AIC", "Backward BIC", "Log Backward AIC", "Log Backward BIC", "Back AIC Selected Log Model", "Batting Selected Log Model", "Fielding Selected Log Model"), t_rmse = test_rmse, error = avg_percent_error)
+
+kable(test_set_results, 
+      col.names = c("Model", "Test RMSE", "Average Percent Error"))
+```
+
+```{r indent = "  "}
+ggplot(data = data.frame(predict_back_aic, salary_tst$salary), mapping = aes(x = predict_back_aic, y = salary_tst$salary)) + 
+  labs(x = "Predicted Salary (in Millions of $)") + 
+  labs(y = "Actual Salary (in Millions of $)") + 
+  labs(title = "Actual vs Predicted Salary - Backward AIC") + 
+  geom_point(color = "darkblue", size = 1) + 
+  scale_y_continuous(labels = label_number(suffix = " M", scale = 1e-6)) +
+  scale_x_continuous(labels = label_number(suffix = " M", scale = 1e-6)) +
+  geom_abline(slope = 1, intercept = 0, color = "red")
+```
+
+```{r indent = "  "}
+ggplot(data = data.frame(predict_select_aic, salary_tst$salary), mapping = aes(x = predict_select_aic, y = salary_tst$salary)) + 
+  labs(x = "Predicted Salary (in Millions of $)") + 
+  labs(y = "Actual Salary (in Millions of $)") + 
+  labs(title = "Actual vs Predicted Salary - Log Backward AIC") + 
+  geom_point(color = "darkblue", size = 1) + 
+  scale_y_continuous(labels = label_number(suffix = " M", scale = 1e-6)) +
+  scale_x_continuous(labels = label_number(suffix = " M", scale = 1e-6)) +
+  geom_abline(slope = 1, intercept = 0, color = "red")
+```
+
 ```{r indent = "  "}
 ggplot(data = data.frame(predict_batting, salary_tst$salary), mapping = aes(x = predict_batting, y = salary_tst$salary)) + 
   labs(x = "Predicted Salary (in Millions of $)") + 
   labs(y = "Actual Salary (in Millions of $)") + 
-  labs(title = "Actual vs Predicted Salary") + 
+  labs(title = "Actual vs Predicted Salary - Batting Selected Log Model") + 
   geom_point(color = "darkblue", size = 1) + 
   scale_y_continuous(labels = label_number(suffix = " M", scale = 1e-6)) +
   scale_x_continuous(labels = label_number(suffix = " M", scale = 1e-6)) +
